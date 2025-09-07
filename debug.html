@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Rasca tu Regalo - Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .image-bottom {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .image-bottom.ready {
+            opacity: 1;
+        }
+
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: yellow;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 200;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug" id="debug">
+        Debug: Iniciando...
+    </div>
+    
+    <div class="container">
+        <img src="naia.jpg" alt="Regalo" class="image-bottom" id="bottom-image">
+        <canvas id="scratch-canvas"></canvas>
+        <div class="loading" id="loading">
+            Cargando...<br>
+            <span id="load-status">Preparando imágenes</span>
+        </div>
+    </div>
+
+    <script>
+        const debug = document.getElementById('debug');
+        const loading = document.getElementById('loading');
+        const loadStatus = document.getElementById('load-status');
+        
+        function log(msg) {
+            console.log(msg);
+            debug.innerHTML += '<br>' + msg;
+        }
+
+        log('Script iniciado');
+
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.querySelector('.container');
+        
+        let isDrawing = false;
+        let topImage = new Image();
+        let revealed = false;
+        let bottomImageLoaded = false;
+        let topImageLoaded = false;
+
+        function checkImagesReady() {
+            log(`Top: ${topImageLoaded}, Bottom: ${bottomImageLoaded}`);
+            if (topImageLoaded && bottomImageLoaded) {
+                log('Ambas imágenes cargadas');
+                loading.style.display = 'none';
+                document.getElementById('bottom-image').classList.add('ready');
+                resizeCanvas();
+            }
+        }
+
+        function resizeCanvas() {
+            log('Redimensionando canvas');
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            ctx.scale(dpr, dpr);
+            
+            drawTopImage();
+        }
+
+        function drawTopImage() {
+            if (topImage.complete && topImage.naturalHeight !== 0) {
+                log('Dibujando imagen superior');
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-over';
+                
+                const cssWidth = canvas.width / (window.devicePixelRatio || 1);
+                const cssHeight = canvas.height / (window.devicePixelRatio || 1);
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, cssWidth, cssHeight);
+                
+                const imgRatio = topImage.width / topImage.height;
+                const canvasRatio = cssWidth / cssHeight;
+                
+                let drawWidth, drawHeight, offsetX, offsetY;
+                
+                if (imgRatio > canvasRatio) {
+                    drawWidth = cssWidth;
+                    drawHeight = cssWidth / imgRatio;
+                    offsetX = 0;
+                    offsetY = (cssHeight - drawHeight) / 2;
+                } else {
+                    drawHeight = cssHeight;
+                    drawWidth = cssHeight * imgRatio;
+                    offsetX = (cssWidth - drawWidth) / 2;
+                    offsetY = 0;
+                }
+                
+                ctx.drawImage(topImage, offsetX, offsetY, drawWidth, drawHeight);
+                
+                // Capa oscura
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(offsetX, offsetY, drawWidth, drawHeight);
+                
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.restore();
+                log('Imagen superior dibujada');
+            }
+        }
+
+        // Cargar imagen de fondo
+        document.getElementById('bottom-image').onload = function() {
+            log('Imagen inferior cargada');
+            loadStatus.textContent = 'Imagen de fondo lista';
+            bottomImageLoaded = true;
+            checkImagesReady();
+        };
+
+        document.getElementById('bottom-image').onerror = function() {
+            log('Error cargando imagen inferior');
+            loadStatus.textContent = 'Error: imagen de fondo';
+        };
+
+        // Cargar imagen superior
+        topImage.onload = function() {
+            log('Imagen superior cargada');
+            loadStatus.textContent = 'Imagen superior lista';
+            topImageLoaded = true;
+            checkImagesReady();
+        };
+
+        topImage.onerror = function() {
+            log('Error cargando imagen superior');
+            loadStatus.textContent = 'Error: imagen superior';
+        };
+
+        log('Iniciando carga de imagen superior');
+        topImage.src = 'inditex.jpg';
+
+        window.addEventListener('resize', () => {
+            if (topImageLoaded) {
+                resizeCanvas();
+            }
+        });
+
+        // Función básica de rasca
+        function scratch(x, y) {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            ctx.arc(x, y, 40, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches) {
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            }
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const coords = getCoordinates(e);
+            scratch(coords.x, coords.y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDrawing) {
+                const coords = getCoordinates(e);
+                scratch(coords.x, coords.y);
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const coords = getCoordinates(e);
+            scratch(coords.x, coords.y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                const coords = getCoordinates(e);
+                scratch(coords.x, coords.y);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        document.body.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        log('Setup completado');
+    </script>
+</body>
+</html>
