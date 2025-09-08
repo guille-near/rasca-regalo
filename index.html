@@ -69,6 +69,45 @@
             white-space: nowrap;
         }
 
+        /* Media queries para dispositivos móviles */
+        @media screen and (max-width: 768px) {
+            .instructions {
+                font-size: 16px;
+                padding: 10px 25px;
+                bottom: 20px;
+                max-width: 90%;
+                white-space: normal;
+            }
+            
+            .image-bottom {
+                object-fit: cover;
+            }
+        }
+        
+        @media screen and (max-width: 480px) {
+            .instructions {
+                font-size: 14px;
+                padding: 8px 20px;
+                bottom: 15px;
+            }
+        }
+        
+        /* Para pantallas muy pequeñas */
+        @media screen and (max-width: 375px) {
+            .instructions {
+                font-size: 13px;
+                padding: 6px 15px;
+            }
+        }
+        
+        /* Para tablets en modo landscape */
+        @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+            .instructions {
+                font-size: 18px;
+                bottom: 25px;
+            }
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
             50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
@@ -197,14 +236,18 @@
         function scratch(x, y) {
             ctx.globalCompositeOperation = 'destination-out';
             
+            // Ajustar tamaño del pincel basado en el dispositivo
+            const isMobile = window.innerWidth <= 768;
+            const brushSize = isMobile ? 30 : 50; // Pincel más pequeño en móviles
+            
             // Pincel con gradiente para efecto más suave
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 50);
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, brushSize);
             gradient.addColorStop(0, 'rgba(0,0,0,1)');
             gradient.addColorStop(0.5, 'rgba(0,0,0,0.9)');
             gradient.addColorStop(1, 'rgba(0,0,0,0)');
             
             ctx.fillStyle = gradient;
-            ctx.fillRect(x - 50, y - 50, 100, 100);
+            ctx.fillRect(x - brushSize, y - brushSize, brushSize * 2, brushSize * 2);
             
             checkProgress();
         }
