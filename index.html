@@ -200,24 +200,43 @@
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, cssWidth, cssHeight);
                 
-                // Calcular dimensiones para mantener proporción (igual que object-fit: contain)
+                // Detectar si estamos en móvil para usar el mismo object-fit que la imagen de fondo
+                const isMobile = window.innerWidth <= 768;
                 const imgRatio = topImage.width / topImage.height;
                 const canvasRatio = cssWidth / cssHeight;
                 
                 let drawWidth, drawHeight, offsetX, offsetY;
                 
-                if (imgRatio > canvasRatio) {
-                    // Imagen proporcionalmente más ancha - ajustar al ancho del canvas
-                    drawWidth = cssWidth;
-                    drawHeight = cssWidth / imgRatio;
-                    offsetX = 0;
-                    offsetY = (cssHeight - drawHeight) / 2;
+                if (isMobile) {
+                    // En móvil: usar object-fit: cover (llenar todo el canvas)
+                    if (imgRatio > canvasRatio) {
+                        // Imagen más ancha - ajustar a la altura y centrar horizontalmente
+                        drawHeight = cssHeight;
+                        drawWidth = cssHeight * imgRatio;
+                        offsetX = (cssWidth - drawWidth) / 2;
+                        offsetY = 0;
+                    } else {
+                        // Imagen más alta - ajustar al ancho y centrar verticalmente
+                        drawWidth = cssWidth;
+                        drawHeight = cssWidth / imgRatio;
+                        offsetX = 0;
+                        offsetY = (cssHeight - drawHeight) / 2;
+                    }
                 } else {
-                    // Imagen proporcionalmente más alta - ajustar a la altura del canvas
-                    drawHeight = cssHeight;
-                    drawWidth = cssHeight * imgRatio;
-                    offsetX = (cssWidth - drawWidth) / 2;
-                    offsetY = 0;
+                    // En desktop: usar object-fit: contain (mostrar toda la imagen)
+                    if (imgRatio > canvasRatio) {
+                        // Imagen proporcionalmente más ancha - ajustar al ancho del canvas
+                        drawWidth = cssWidth;
+                        drawHeight = cssWidth / imgRatio;
+                        offsetX = 0;
+                        offsetY = (cssHeight - drawHeight) / 2;
+                    } else {
+                        // Imagen proporcionalmente más alta - ajustar a la altura del canvas
+                        drawHeight = cssHeight;
+                        drawWidth = cssHeight * imgRatio;
+                        offsetX = (cssWidth - drawWidth) / 2;
+                        offsetY = 0;
+                    }
                 }
                 
                 ctx.drawImage(topImage, offsetX, offsetY, drawWidth, drawHeight);
